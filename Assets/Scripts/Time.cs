@@ -1,3 +1,4 @@
+using DG.Tweening;
 using System;
 using System.Collections;
 using System.Threading.Tasks;
@@ -8,6 +9,9 @@ using UnityEngine.UI;
 public class Time : MonoBehaviour
 {
     [SerializeField] private Text _timeText;
+    [SerializeField] private Transform _hourHand;
+    [SerializeField] private Transform _minuteHand;
+    [SerializeField] private Transform _secondHand;
     private DateTimeOffset _currentTime;
 
     private readonly string _timeUrl = "https://yandex.com/time/sync.json";
@@ -42,14 +46,31 @@ public class Time : MonoBehaviour
         StartCoroutine(UpdateTime());
     }
 
+
     private IEnumerator UpdateTime()
     {
         while (true)
         {
             _currentTime = _currentTime.AddSeconds(1);
             _timeText.text = _currentTime.ToString("HH:mm:ss");
+            UpdateClockHands();
             yield return new WaitForSeconds(1);
         }
+    }
+
+    private void UpdateClockHands()
+    {
+        float hours = (_currentTime.Hour % 12) + (_currentTime.Minute / 60f);
+        float minutes = _currentTime.Minute + (_currentTime.Second / 60f);
+        float seconds = _currentTime.Second + (_currentTime.Millisecond / 1000f);
+
+        float targetHourRotation = -hours * 30;
+        float targetMinuteRotation = -minutes * 6;
+        float targetSecondRotation = -seconds * 6;
+
+        _hourHand.DOLocalRotate(new Vector3(0, 0, targetHourRotation), 1f).SetEase(Ease.Linear);
+        _minuteHand.DOLocalRotate(new Vector3(0, 0, targetMinuteRotation), 1f).SetEase(Ease.Linear);
+        _secondHand.DOLocalRotate(new Vector3(0, 0, targetSecondRotation), 1f).SetEase(Ease.Linear);
     }
 
     [System.Serializable]
