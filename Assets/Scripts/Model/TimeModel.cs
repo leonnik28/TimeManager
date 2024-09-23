@@ -5,15 +5,37 @@ using UnityEngine.Networking;
 
 public class TimeModel
 {
-    private DateTimeOffset _currentTime;
-    private readonly string _timeUrl = "https://yandex.com/time/sync.json";
-
     public event Action<DateTimeOffset> OnTimeUpdated;
+
+    private DateTimeOffset _currentTime;
+    private bool _isPlaying = true;
+
+    private readonly string _timeUrl = "https://yandex.com/time/sync.json";
 
     public async void StartTimeSync()
     {
         await GetTimeFromServer();
-        await CheckTimeEveryHour();
+        await UpdateTime();
+    }
+
+    public async void SetTimeManually(DateTimeOffset time)
+    {
+        _currentTime = time;
+        _isPlaying = true;
+        OnTimeUpdated?.Invoke(_currentTime);
+        await UpdateTime();
+    }
+
+    public async void SetTimeFromServer()
+    {
+        _isPlaying = true;
+        await GetTimeFromServer();
+        await UpdateTime();
+    }
+
+    public void StopTimer()
+    {
+        _isPlaying = false;
     }
 
     private async Task GetTimeFromServer()
@@ -43,25 +65,24 @@ public class TimeModel
     {
         _currentTime = DateTimeOffset.FromUnixTimeMilliseconds(unixTime).ToLocalTime();
         OnTimeUpdated?.Invoke(_currentTime);
-        _ = UpdateTime();
     }
 
     private async Task UpdateTime()
     {
         while (true)
         {
+            if (!_isPlaying)
+            {
+                break;
+            }
             _currentTime = _currentTime.AddSeconds(1);
             OnTimeUpdated?.Invoke(_currentTime);
             await Task.Delay(1000);
-        }
-    }
 
-    private async Task CheckTimeEveryHour()
-    {
-        while (true)
-        {
-            await Task.Delay(3600000);
-            await GetTimeFromServer();
+            if (_currentTime.Minute == 0 && _currentTime.Second == 0)
+            {
+                await GetTimeFromServer();
+            }
         }
     }
 
